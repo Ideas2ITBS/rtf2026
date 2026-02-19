@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>RTF 2026 — Admin Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--purple:#5b21b6;--purple-light:#7c3aed;--purple-dark:#3b0764;--gold:#f59e0b;--green:#059669;--red:#dc2626;--blue:#2563eb;--bg:#f1effe;--card:#fff;--text:#1e1b4b;--muted:#6b7280;--border:#ddd6fe;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* Gate */
+.gate{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,var(--purple-dark),var(--purple));}
+.gate-card{background:white;border-radius:16px;padding:40px 32px;max-width:340px;width:calc(100% - 32px);box-shadow:0 20px 60px rgba(0,0,0,0.3);text-align:center;}
+.gate-card .gi{font-size:2.6rem;margin-bottom:14px;}
+.gate-card h2{font-family:'Space Mono',monospace;color:var(--purple-dark);margin-bottom:5px;font-size:1.1rem;}
+.gate-card p{font-size:0.82rem;color:var(--muted);margin-bottom:20px;}
+.gate-input{width:100%;padding:12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Space Mono',monospace;font-size:1.6rem;outline:none;text-align:center;letter-spacing:8px;margin-bottom:12px;background:#faf9ff;}
+.gate-input:focus{border-color:var(--purple-light);}
+.gate-btn{width:100%;padding:13px;background:linear-gradient(135deg,var(--purple-dark),var(--purple-light));color:white;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:0.96rem;font-weight:700;cursor:pointer;}
+.gate-err{color:var(--red);font-size:0.8rem;margin-top:8px;display:none;}
+.gate-hint{font-size:0.72rem;color:var(--muted);margin-top:14px;}
+
+/* Topbar */
+.topbar{background:linear-gradient(135deg,var(--purple-dark),var(--purple));color:white;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:54px;position:sticky;top:0;z-index:50;box-shadow:0 2px 12px rgba(59,7,100,0.35);}
+.topbar-left{display:flex;align-items:center;gap:10px;}
+.tb-badge{background:rgba(255,255,255,0.2);border-radius:5px;padding:2px 8px;font-family:'Space Mono',monospace;font-size:0.68rem;font-weight:700;}
+.topbar h2{font-family:'Space Mono',monospace;font-size:0.9rem;font-weight:700;}
+.topbar-right{display:flex;align-items:center;gap:8px;}
+.tb-btn{padding:6px 13px;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;border:none;text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
+.tb-btn.light{background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.25);}
+.tb-btn.gold{background:var(--gold);color:#1c1100;}
+.tb-btn:hover{opacity:0.85;}
+
+/* Nav tabs */
+.main-nav{background:white;border-bottom:1px solid var(--border);padding:0 20px;display:flex;gap:0;overflow-x:auto;}
+.nav-tab{padding:13px 20px;border:none;background:none;font-family:'DM Sans',sans-serif;font-size:0.84rem;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all 0.15s;}
+.nav-tab.active{color:var(--purple);border-bottom-color:var(--purple);}
+.nav-tab:hover:not(.active){color:var(--text);}
+
+/* Refresh bar */
+.refresh-bar{background:#faf9ff;border-bottom:1px solid var(--border);padding:8px 20px;display:flex;align-items:center;justify-content:space-between;font-size:0.76rem;color:var(--muted);}
+.refresh-btn{display:flex;align-items:center;gap:5px;padding:5px 12px;background:var(--purple);color:white;border:none;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:0.76rem;font-weight:700;cursor:pointer;}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#10b981;display:inline-block;margin-right:5px;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+
+/* Pages */
+.page{display:none;} .page.active{display:block;}
+.container{max-width:1100px;margin:0 auto;padding:20px 16px;}
+
+/* Stat cards */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:22px;}
+.stat-card{background:var(--card);border-radius:12px;padding:18px;border:1px solid var(--border);box-shadow:0 1px 4px rgba(91,33,182,0.07);position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--accent,var(--purple));}
+.stat-card .s-icon{font-size:1.5rem;margin-bottom:7px;}
+.stat-card .s-val{font-family:'Space Mono',monospace;font-size:2rem;font-weight:700;line-height:1;}
+.stat-card .s-label{font-size:0.76rem;color:var(--muted);margin-top:4px;font-weight:500;}
+.stat-card .s-sub{font-size:0.7rem;color:var(--muted);margin-top:2px;}
+
+/* Target card */
+.target-card{background:var(--card);border-radius:12px;padding:18px;border:1px solid var(--border);box-shadow:0 1px 4px rgba(91,33,182,0.07);margin-bottom:22px;}
+.target-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;}
+.target-header h3{font-family:'Space Mono',monospace;font-size:0.84rem;color:var(--purple-dark);}
+.target-inputs{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.target-input{width:70px;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;font-family:'Space Mono',monospace;font-size:0.84rem;text-align:center;outline:none;}
+.target-input:focus{border-color:var(--purple-light);}
+.set-target-btn{padding:6px 12px;background:var(--purple);color:white;border:none;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;}
+.target-meters{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+
+/* Section title */
+.section-title{font-family:'Space Mono',monospace;font-size:0.78rem;font-weight:700;color:var(--purple-dark);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* Charts */
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px;}
+@media(max-width:640px){.charts-row{grid-template-columns:1fr;}}
+.chart-card{background:var(--card);border-radius:12px;padding:18px;border:1px solid var(--border);box-shadow:0 1px 4px rgba(91,33,182,0.07);}
+.chart-card h4{font-size:0.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;}
+.bar-chart{display:flex;flex-direction:column;gap:7px;}
+.bar-row{display:flex;align-items:center;gap:7px;}
+.bar-label{font-size:0.76rem;color:var(--text);width:120px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bar-track{flex:1;background:#f0ebff;border-radius:4px;height:16px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:4px;transition:width 0.6s ease;background:linear-gradient(90deg,var(--purple),var(--purple-light));}
+.bar-fill.green{background:linear-gradient(90deg,var(--green),#34d399);}
+.bar-fill.gold{background:linear-gradient(90deg,#d97706,var(--gold));}
+.bar-count{font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--muted);width:24px;text-align:right;flex-shrink:0;}
+
+/* Donut */
+.donut-wrap{display:flex;align-items:center;gap:20px;}
+.donut-legend{display:flex;flex-direction:column;gap:10px;}
+.legend-item{display:flex;align-items:center;gap:7px;font-size:0.82rem;}
+.legend-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;}
+
+/* Timeline */
+.timeline{display:flex;flex-direction:column;gap:7px;max-height:300px;overflow-y:auto;}
+.tl-item{display:flex;align-items:center;gap:9px;padding:9px 12px;background:#faf9ff;border-radius:8px;border:1px solid var(--border);}
+.tl-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.tl-dot.business{background:var(--purple);}
+.tl-dot.property{background:var(--green);}
+.tl-name{font-size:0.82rem;font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tl-time{font-size:0.7rem;color:var(--muted);white-space:nowrap;}
+
+/* Map */
+.map-card{background:var(--card);border-radius:12px;overflow:hidden;border:1px solid var(--border);box-shadow:0 1px 4px rgba(91,33,182,0.07);margin-bottom:22px;}
+.map-toolbar{padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--border);background:#faf9ff;}
+.map-filter-btn{padding:5px 12px;border-radius:6px;border:1.5px solid var(--border);background:white;font-family:'DM Sans',sans-serif;font-size:0.78rem;font-weight:600;cursor:pointer;transition:all 0.15s;}
+.map-filter-btn.active{border-color:var(--purple);background:#ede9fe;color:var(--purple-dark);}
+#adminMap{height:380px;width:100%;background:#e8e4f8;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:0.88rem;text-align:center;}
+
+/* Table */
+.table-card{background:var(--card);border-radius:12px;border:1px solid var(--border);box-shadow:0 1px 4px rgba(91,33,182,0.07);overflow:hidden;margin-bottom:22px;}
+.table-toolbar{padding:12px 16px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;border-bottom:1px solid var(--border);background:#faf9ff;}
+.search-input{flex:1;min-width:150px;padding:7px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:0.82rem;outline:none;background:white;}
+.search-input:focus{border-color:var(--purple-light);}
+.filter-sel{padding:7px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:0.82rem;outline:none;background:white;cursor:pointer;}
+.exp-btn{display:flex;align-items:center;gap:5px;padding:7px 13px;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;border:none;}
+.exp-btn.xlsx{background:linear-gradient(135deg,#166534,#059669);color:white;}
+.exp-btn.csv{background:linear-gradient(135deg,#1e40af,var(--blue));color:white;}
+.exp-btn:hover{opacity:0.88;}
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:0.8rem;}
+thead tr{background:#f5f3ff;}
+th{padding:9px 13px;text-align:left;font-weight:700;color:var(--purple-dark);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.4px;white-space:nowrap;border-bottom:1.5px solid var(--border);}
+td{padding:9px 13px;border-bottom:1px solid #f0ebff;color:var(--text);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#faf9ff;}
+.type-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;}
+.type-badge.business{background:#ede9fe;color:var(--purple-dark);}
+.type-badge.property{background:#dcfce7;color:#166534;}
+.maps-link{color:var(--blue);text-decoration:none;font-size:0.74rem;}
+.maps-link:hover{text-decoration:underline;}
+.empty-state{text-align:center;padding:48px;color:var(--muted);}
+.pagination{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;font-size:0.78rem;color:var(--muted);border-top:1px solid var(--border);}
+.page-btns{display:flex;gap:5px;}
+.page-btn{padding:5px 10px;border:1.5px solid var(--border);border-radius:5px;background:white;cursor:pointer;font-size:0.76rem;font-weight:600;}
+.page-btn.active{background:var(--purple);color:white;border-color:var(--purple);}
+.page-btn:disabled{opacity:0.4;cursor:not-allowed;}
+
+/* Loading */
+.spinner-lg{width:34px;height:34px;border:3px solid var(--border);border-top-color:var(--purple);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 14px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-box{text-align:center;padding:56px;color:var(--muted);}
+
+@media(max-width:640px){
+  .topbar h2{display:none;}
+  .stats-grid{grid-template-columns:1fr 1fr;}
+  .target-meters{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- GATE -->
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <div class="gi">🔐</div>
+    <h2>Admin Dashboard</h2>
+    <p>Revenue Task Force 2026<br/>Cape Coast Metropolitan Assembly</p>
+    <input type="password" class="gate-input" id="gateInput" placeholder="••••" maxlength="10"
+      onkeydown="if(event.key==='Enter')checkPass()"/>
+    <button class="gate-btn" onclick="checkPass()">Enter Dashboard</button>
+    <p class="gate-err" id="gateErr">⚠ Incorrect password. Try again.</p>
+    <p class="gate-hint">Default PIN: <strong>2026</strong> — change ADMIN_PASSWORD before deploying</p>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" style="display:none;">
+
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="tb-badge">ADMIN</span>
+      <h2>Revenue Task Force 2026</h2>
+    </div>
+    <div class="topbar-right">
+      <span style="font-size:0.74rem;color:rgba(255,255,255,0.7);" id="totalBadge">—</span>
+      <a href="index.html" class="tb-btn gold">📋 Form</a>
+      <button class="tb-btn light" onclick="logout()">↩ Logout</button>
+    </div>
+  </div>
+
+  <div class="main-nav">
+    <button class="nav-tab active" id="navOverview" onclick="showPage('overview',this)">📊 Overview</button>
+    <button class="nav-tab" id="navMap"      onclick="showPage('map',this)">🗺️ Map</button>
+    <button class="nav-tab" id="navRecords"  onclick="showPage('records',this)">📋 All Records</button>
+  </div>
+
+  <div class="refresh-bar">
+    <span><span class="live-dot"></span><span id="lastUpdated">Loading...</span></span>
+    <button class="refresh-btn" onclick="loadData()">🔄 Refresh</button>
+  </div>
+
+  <!-- ===== OVERVIEW ===== -->
+  <div class="page active" id="pg-overview">
+    <div class="container">
+      <div id="overviewContent"><div class="loading-box"><div class="spinner-lg"></div><p>Loading data...</p></div></div>
+    </div>
+  </div>
+
+  <!-- ===== MAP ===== -->
+  <div class="page" id="pg-map">
+    <div class="container">
+      <div class="map-card">
+        <div class="map-toolbar">
+          <strong style="font-size:0.84rem;color:var(--purple-dark);">📍 GPS Collection Points</strong>
+          <button class="map-filter-btn active" id="mf-all"      onclick="setMapFilter('all')">All</button>
+          <button class="map-filter-btn"        id="mf-business" onclick="setMapFilter('business')">🏪 Business</button>
+          <button class="map-filter-btn"        id="mf-property" onclick="setMapFilter('property')">🏠 Property</button>
+          <span style="font-size:0.74rem;color:var(--muted);margin-left:auto;" id="mapCount"></span>
+        </div>
+        <div id="adminMap">
+          <div>
+            <div style="font-size:2.5rem;margin-bottom:10px;">🗺️</div>
+            <p style="font-weight:600;margin-bottom:4px;">Map requires Google Maps API key</p>
+            <p style="font-size:0.78rem;color:var(--muted);">GPS coordinates are captured correctly.<br/>Add your API key to enable the visual map.</p>
+          </div>
+        </div>
+      </div>
+      <div class="section-title">GPS Coordinates List</div>
+      <div id="gpsList"><div class="loading-box"><div class="spinner-lg"></div></div></div>
+    </div>
+  </div>
+
+  <!-- ===== RECORDS ===== -->
+  <div class="page" id="pg-records">
+    <div class="container">
+      <div id="recordsContent"><div class="loading-box"><div class="spinner-lg"></div><p>Loading...</p></div></div>
+    </div>
+  </div>
+
+</div><!-- /dashboard -->
+
+<script>
+// ============================================================
+const ADMIN_PASSWORD    = '2026';
+const APPS_SCRIPT_URL   = 'https://script.google.com/macros/s/AKfycbwxFxfJloKO-sjeokue_rE2uNWLzuAL3j_kH4s_szMv5U-IrQhxvUeFmiCeLnC2Q61R3Q/exec';
+const GOOGLE_MAPS_API_KEY = 'YOUR_GOOGLE_MAPS_API_KEY'; // optional
+// ============================================================
+
+let allRecords = [];
+let filteredRecs = [];
+let currentPage = 1;
+const PAGE_SZ = 20;
+let tableTypeFilter = 'all';
+let mapFilter = 'all';
+let adminMap = null, adminMarkers = [];
+let mapsAPILoaded = false;
+let targets = { biz: 20, prop: 20 };
+
+// ---- AUTH ----
+function checkPass() {
+  if (document.getElementById('gateInput').value === ADMIN_PASSWORD) {
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    loadData();
+    loadMapsAPI();
+  } else {
+    document.getElementById('gateErr').style.display = 'block';
+    document.getElementById('gateInput').value = '';
+    document.getElementById('gateInput').focus();
+  }
+}
+function logout() {
+  document.getElementById('gate').style.display = 'flex';
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('gateInput').value = '';
+  document.getElementById('gateErr').style.display = 'none';
+}
+
+// ---- DATA ----
+async function loadData() {
+  document.getElementById('lastUpdated').textContent = 'Refreshing...';
+  if (APPS_SCRIPT_URL !== 'https://script.google.com/macros/s/AKfycbwxFxfJloKO-sjeokue_rE2uNWLzuAL3j_kH4s_szMv5U-IrQhxvUeFmiCeLnC2Q61R3Q/exec') {
+    try {
+      const res = await fetch(`${APPS_SCRIPT_URL}?action=getAll`);
+      const data = await res.json();
+      if (data?.records) {
+        allRecords = data.records;
+        document.getElementById('lastUpdated').textContent =
+          `Updated ${new Date().toLocaleTimeString()} · ${allRecords.length} records from Google Sheets`;
+        renderAll(); return;
+      }
+    } catch(e) { console.warn('Sheets fetch failed, using local data.', e); }
+  }
+  // Fallback to localStorage (offline queue)
+  try { allRecords = JSON.parse(localStorage.getItem('rtf2026_queue') || '[]'); } catch(e) { allRecords = []; }
+  document.getElementById('lastUpdated').textContent =
+    APPS_SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbwxFxfJloKO-sjeokue_rE2uNWLzuAL3j_kH4s_szMv5U-IrQhxvUeFmiCeLnC2Q61R3Q/exec'
+      ? `Demo mode — set APPS_SCRIPT_URL to see live data · ${allRecords.length} local records`
+      : `Using local data (${allRecords.length} records) — Sheets unavailable`;
+  renderAll();
+}
+
+function renderAll() {
+  document.getElementById('totalBadge').textContent = `${allRecords.length} records`;
+  try { targets = JSON.parse(localStorage.getItem('rtf2026_targets')) || targets; } catch(e) {}
+  renderOverview();
+  renderGPSList();
+  renderRecords();
+  if (mapsAPILoaded) renderMapMarkers();
+  clearTimeout(window._rt);
+  window._rt = setTimeout(loadData, 60000);
+}
+
+// ---- OVERVIEW ----
+function renderOverview() {
+  const biz   = allRecords.filter(r => r.type === 'business');
+  const prop  = allRecords.filter(r => r.type === 'property');
+  const total = allRecords.length;
+  const today = new Date().toLocaleDateString('en-GH', { timeZone: 'Africa/Accra' });
+  const todayRecs  = allRecords.filter(r => r.date === today || (r.timestamp || '').startsWith(today));
+  const todayBiz   = todayRecs.filter(r => r.type === 'business').length;
+  const todayProp  = todayRecs.filter(r => r.type === 'property').length;
+  const days = new Set(allRecords.map(r => r.date || (r.timestamp||'').split(',')[0])).size || 1;
+  const withGPS = allRecords.filter(r => r.latitude && r.longitude).length;
+
+  // Donut
+  const circ = 2 * Math.PI * 36;
+  const bizArc  = total > 0 ? (biz.length / total) * circ : 0;
+  const propArc = total > 0 ? (prop.length / total) * circ : 0;
+
+  document.getElementById('overviewContent').innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card" style="--accent:#5b21b6">
+        <div class="s-icon">📋</div>
+        <div class="s-val">${total}</div>
+        <div class="s-label">Total Records</div>
+        <div class="s-sub">${todayRecs.length} today · ${days} active day(s)</div>
+      </div>
+      <div class="stat-card" style="--accent:#7c3aed">
+        <div class="s-icon">🏪</div>
+        <div class="s-val">${biz.length}</div>
+        <div class="s-label">Business Records</div>
+        <div class="s-sub">${todayBiz} today · ${total ? Math.round(biz.length/total*100) : 0}% of total</div>
+      </div>
+      <div class="stat-card" style="--accent:#059669">
+        <div class="s-icon">🏠</div>
+        <div class="s-val">${prop.length}</div>
+        <div class="s-label">Property Records</div>
+        <div class="s-sub">${todayProp} today · ${total ? Math.round(prop.length/total*100) : 0}% of total</div>
+      </div>
+      <div class="stat-card" style="--accent:#f59e0b">
+        <div class="s-icon">📈</div>
+        <div class="s-val">${days > 0 ? (total/days).toFixed(1) : 0}</div>
+        <div class="s-label">Avg Records / Day</div>
+        <div class="s-sub">across ${days} collection day(s)</div>
+      </div>
+      <div class="stat-card" style="--accent:#2563eb">
+        <div class="s-icon">📍</div>
+        <div class="s-val">${withGPS}</div>
+        <div class="s-label">GPS Captured</div>
+        <div class="s-sub">${total ? Math.round(withGPS/total*100) : 0}% coverage</div>
+      </div>
+    </div>
+
+    <div class="target-card">
+      <div class="target-header">
+        <h3>🎯 Daily Targets vs Actual (Today)</h3>
+        <div class="target-inputs">
+          <label style="font-size:0.76rem;color:var(--muted);">Business:</label>
+          <input type="number" class="target-input" id="tgt-biz" value="${targets.biz}" min="1"/>
+          <label style="font-size:0.76rem;color:var(--muted);">Property:</label>
+          <input type="number" class="target-input" id="tgt-prop" value="${targets.prop}" min="1"/>
+          <button class="set-target-btn" onclick="setTargets()">Set</button>
+        </div>
+      </div>
+      <div class="target-meters">
+        ${meter('Business Today', todayBiz, targets.biz)}
+        ${meter('Property Today', todayProp, targets.prop)}
+      </div>
+    </div>
+
+    <div class="section-title">Analytics</div>
+    <div class="charts-row">
+      <div class="chart-card">
+        <h4>🏪 Business Types</h4>
+        <div class="bar-chart">${bars(countBy(biz,'businessType'),'purple')}</div>
+      </div>
+      <div class="chart-card">
+        <h4>🏠 Building Types</h4>
+        <div class="bar-chart">${bars(countBy(prop,'buildingType'),'green')}</div>
+      </div>
+    </div>
+    <div class="charts-row">
+      <div class="chart-card">
+        <h4>📍 Suburbs (Property)</h4>
+        <div class="bar-chart">${bars(countBy(prop,'suburb'),'green')}</div>
+      </div>
+      <div class="chart-card">
+        <h4>📊 Collection Split</h4>
+        <div class="donut-wrap">
+          <svg width="90" height="90" viewBox="0 0 90 90">
+            <circle cx="45" cy="45" r="36" fill="none" stroke="#ede9fe" stroke-width="14"/>
+            <circle cx="45" cy="45" r="36" fill="none" stroke="#5b21b6" stroke-width="14"
+              stroke-dasharray="${bizArc} ${circ-bizArc}" stroke-dashoffset="${circ*0.25}"
+              style="transform:rotate(-90deg);transform-origin:center;"/>
+            <circle cx="45" cy="45" r="36" fill="none" stroke="#059669" stroke-width="14"
+              stroke-dasharray="${propArc} ${circ-propArc}" stroke-dashoffset="${circ*0.25 - bizArc}"
+              style="transform:rotate(-90deg);transform-origin:center;"/>
+          </svg>
+          <div class="donut-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#5b21b6"></div>Business: ${biz.length}</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#059669"></div>Property: ${prop.length}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">Recent Activity</div>
+    <div class="chart-card" style="margin-bottom:22px;">
+      <div class="timeline">
+        ${[...allRecords].reverse().slice(0,10).map(r=>`
+          <div class="tl-item">
+            <div class="tl-dot ${r.type}"></div>
+            <div class="tl-name">${r.type==='business'?(r.businessName||'Business'):(r.ownerName||'Property')}</div>
+            <span style="font-size:0.7rem;padding:2px 7px;border-radius:10px;background:${r.type==='business'?'#ede9fe':'#dcfce7'};color:${r.type==='business'?'#3b0764':'#166534'};font-weight:700;white-space:nowrap;">${r.type==='business'?'🏪':'🏠'}</span>
+            <span class="tl-time">${r.timestamp||''}</span>
+          </div>
+        `).join('') || '<p style="font-size:0.82rem;color:var(--muted);padding:12px 0;">No records yet.</p>'}
+      </div>
+    </div>
+  `;
+}
+
+function meter(label, actual, target) {
+  const pct = Math.min(Math.round(actual / target * 100), 100);
+  const color = pct >= 100 ? '#059669' : pct >= 50 ? '#f59e0b' : '#dc2626';
+  return `<div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:0.8rem;">
+      <span style="font-weight:600;">${label}</span>
+      <span style="font-family:'Space Mono',monospace;color:${color};">${actual} / ${target}</span>
+    </div>
+    <div style="background:#f0ebff;border-radius:6px;height:26px;overflow:hidden;">
+      <div style="height:100%;width:${pct}%;background:${color};border-radius:6px;display:flex;align-items:center;justify-content:center;transition:width 0.6s;">
+        ${pct > 8 ? `<span style="font-size:0.72rem;font-weight:700;color:white;">${pct}%</span>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function setTargets() {
+  targets.biz  = parseInt(document.getElementById('tgt-biz').value)  || 20;
+  targets.prop = parseInt(document.getElementById('tgt-prop').value) || 20;
+  try { localStorage.setItem('rtf2026_targets', JSON.stringify(targets)); } catch(e) {}
+  renderOverview();
+}
+
+function countBy(arr, key) {
+  const c = {};
+  arr.forEach(r => { const v = r[key] || 'Unknown'; c[v] = (c[v] || 0) + 1; });
+  return Object.entries(c).sort((a,b) => b[1]-a[1]);
+}
+function bars(entries, color) {
+  if (!entries.length) return '<p style="font-size:0.76rem;color:var(--muted);padding:6px 0;">No data yet.</p>';
+  const max = entries[0][1];
+  return entries.slice(0,7).map(([label,count]) => `
+    <div class="bar-row">
+      <div class="bar-label" title="${label}">${label||'—'}</div>
+      <div class="bar-track"><div class="bar-fill ${color==='green'?'green':color==='gold'?'gold':''}" style="width:${Math.round(count/max*100)}%"></div></div>
+      <div class="bar-count">${count}</div>
+    </div>
+  `).join('');
+}
+
+// ---- MAP ----
+function loadMapsAPI() {
+  if (GOOGLE_MAPS_API_KEY === 'YOUR_GOOGLE_MAPS_API_KEY') return;
+  const s = document.createElement('script');
+  s.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&callback=onAdminMapsReady`;
+  s.async = true;
+  document.head.appendChild(s);
+}
+window.onAdminMapsReady = function() {
+  mapsAPILoaded = true;
+  document.getElementById('adminMap').innerHTML = '';
+  adminMap = new google.maps.Map(document.getElementById('adminMap'), {
+    zoom: 13, center: { lat: 5.1053, lng: -1.2466 }, mapTypeId: 'roadmap'
+  });
+  renderMapMarkers();
+};
+function setMapFilter(f) {
+  mapFilter = f;
+  ['all','business','property'].forEach(t =>
+    document.getElementById(`mf-${t}`).classList.toggle('active', t === f)
+  );
+  renderMapMarkers();
+}
+function renderMapMarkers() {
+  if (!adminMap) return;
+  adminMarkers.forEach(m => m.setMap(null)); adminMarkers = [];
+  const recs = mapFilter === 'all' ? allRecords : allRecords.filter(r => r.type === mapFilter);
+  const withGPS = recs.filter(r => r.latitude && r.longitude);
+  document.getElementById('mapCount').textContent = `${withGPS.length} points`;
+  withGPS.forEach(r => {
+    const marker = new google.maps.Marker({
+      position: { lat: parseFloat(r.latitude), lng: parseFloat(r.longitude) },
+      map: adminMap,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE, scale: 7,
+        fillColor: r.type === 'business' ? '#7c3aed' : '#059669',
+        fillOpacity: 0.9, strokeColor: 'white', strokeWeight: 2
+      },
+      title: r.type === 'business' ? (r.businessName || 'Business') : (r.ownerName || 'Property'),
+    });
+    const info = new google.maps.InfoWindow({ content: `
+      <div style="font-family:'DM Sans',sans-serif;font-size:0.82rem;max-width:190px;line-height:1.5;">
+        <strong>${r.type==='business'?(r.businessName||'Business'):(r.ownerName||'Property')}</strong><br/>
+        <span style="color:#6b7280;">${r.type==='business'?(r.businessType||''):(r.buildingType||'')}</span><br/>
+        <span style="color:#6b7280;font-size:0.7rem;">${r.timestamp||''}</span><br/>
+        <a href="${r.mapsLink}" target="_blank" style="color:#2563eb;font-size:0.74rem;">Open in Maps →</a>
+      </div>
+    `});
+    marker.addListener('click', () => info.open(adminMap, marker));
+    adminMarkers.push(marker);
+  });
+  if (withGPS.length > 0) {
+    const bounds = new google.maps.LatLngBounds();
+    withGPS.forEach(r => bounds.extend({ lat: parseFloat(r.latitude), lng: parseFloat(r.longitude) }));
+    adminMap.fitBounds(bounds);
+  }
+}
+function renderGPSList() {
+  const withGPS = allRecords.filter(r => r.latitude && r.longitude);
+  document.getElementById('gpsList').innerHTML = `
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Type</th><th>Name</th><th>Suburb</th><th>Latitude</th><th>Longitude</th><th>Timestamp</th><th>Map</th></tr></thead>
+          <tbody>
+            ${withGPS.length === 0
+              ? `<tr><td colspan="8"><div class="empty-state">No GPS records yet.</div></td></tr>`
+              : withGPS.map((r,i)=>`<tr>
+                  <td style="color:var(--muted);font-size:0.72rem;">${i+1}</td>
+                  <td><span class="type-badge ${r.type}">${r.type==='business'?'🏪':'🏠'}</span></td>
+                  <td><strong>${r.type==='business'?(r.businessName||'—'):(r.ownerName||'—')}</strong></td>
+                  <td>${r.suburb||'—'}</td>
+                  <td style="font-family:'Space Mono',monospace;font-size:0.72rem;">${r.latitude}</td>
+                  <td style="font-family:'Space Mono',monospace;font-size:0.72rem;">${r.longitude}</td>
+                  <td style="font-size:0.72rem;color:var(--muted);">${r.timestamp||'—'}</td>
+                  <td><a href="${r.mapsLink}" target="_blank" class="maps-link">📍 View</a></td>
+                </tr>`).join('')
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// ---- RECORDS TABLE ----
+function renderRecords() {
+  document.getElementById('recordsContent').innerHTML = `
+    <div class="table-card">
+      <div class="table-toolbar">
+        <input type="text" class="search-input" id="searchInput"
+          placeholder="🔍 Search by name, contact, suburb, type..."
+          oninput="filterAndRender()"/>
+        <select class="filter-sel" id="typeFilter" onchange="filterAndRender()">
+          <option value="all">All Types</option>
+          <option value="business">🏪 Business</option>
+          <option value="property">🏠 Property</option>
+        </select>
+        <button class="exp-btn xlsx" onclick="exportXLSX()">📊 Excel</button>
+        <button class="exp-btn csv"  onclick="exportCSV()">📄 CSV</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Type</th><th>Timestamp</th><th>Name</th><th>Contact</th><th>Category</th><th>Suburb / Address</th><th>Map</th></tr></thead>
+          <tbody id="recordsTbody"></tbody>
+        </table>
+      </div>
+      <div class="pagination" id="recordsPag"></div>
+    </div>
+  `;
+  filterAndRender();
+}
+function filterAndRender() {
+  const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
+  const tf = document.getElementById('typeFilter')?.value || 'all';
+  filteredRecs = [...allRecords].reverse();
+  if (tf !== 'all') filteredRecs = filteredRecs.filter(r => r.type === tf);
+  if (search) filteredRecs = filteredRecs.filter(r => JSON.stringify(r).toLowerCase().includes(search));
+  currentPage = 1;
+  renderTablePage();
+}
+function renderTablePage() {
+  const total = filteredRecs.length;
+  const pages = Math.ceil(total / PAGE_SZ) || 1;
+  currentPage  = Math.min(currentPage, pages);
+  const start  = (currentPage - 1) * PAGE_SZ;
+  const slice  = filteredRecs.slice(start, start + PAGE_SZ);
+  const tbody  = document.getElementById('recordsTbody');
+  if (!tbody) return;
+  if (!slice.length) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">No records found.</div></td></tr>`;
+  } else {
+    tbody.innerHTML = slice.map((r, i) => {
+      const name   = r.type === 'business' ? (r.businessName || r.ownerName || '—') : (r.ownerName || '—');
+      const cat    = r.type === 'business' ? (r.businessType || r.item || '—') : (r.buildingType || '—');
+      const loc    = r.suburb || (r.address ? r.address.slice(0, 40) + '…' : '—');
+      return `<tr>
+        <td style="color:var(--muted);font-size:0.72rem;">${start+i+1}</td>
+        <td><span class="type-badge ${r.type}">${r.type==='business'?'🏪 Business':'🏠 Property'}</span></td>
+        <td style="font-size:0.74rem;color:var(--muted);white-space:nowrap;">${r.timestamp||'—'}</td>
+        <td><strong>${name}</strong></td>
+        <td>${r.contact||'—'}</td>
+        <td style="font-size:0.76rem;color:var(--muted);">${cat}</td>
+        <td style="font-size:0.74rem;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${loc}</td>
+        <td>${r.mapsLink ? `<a href="${r.mapsLink}" target="_blank" class="maps-link">📍</a>` : '—'}</td>
+      </tr>`;
+    }).join('');
+  }
+  const pag = document.getElementById('recordsPag');
+  if (!pag) return;
+  let h = `<span>${total} records · Page ${currentPage}/${pages}</span><div class="page-btns">`;
+  h += `<button class="page-btn" ${currentPage===1?'disabled':''} onclick="currentPage--;renderTablePage()">←</button>`;
+  const s = Math.max(1, currentPage-2), e = Math.min(pages, s+4);
+  for (let p = s; p <= e; p++)
+    h += `<button class="page-btn${p===currentPage?' active':''}" onclick="currentPage=${p};renderTablePage()">${p}</button>`;
+  h += `<button class="page-btn" ${currentPage===pages?'disabled':''} onclick="currentPage++;renderTablePage()">→</button></div>`;
+  pag.innerHTML = h;
+}
+
+// ---- EXPORT ----
+function getExportRecs() {
+  const tf = document.getElementById('typeFilter')?.value || 'all';
+  let r = [...allRecords];
+  if (tf !== 'all') r = r.filter(x => x.type === tf);
+  return r;
+}
+function buildSheets(records) {
+  const bH = ['Type','Timestamp','Date','Business Name','Owner Name','Contact','Business Type','Business Size','Item / Product / Service','Latitude','Longitude','Address','Plus Code','Google Maps Link'];
+  const pH = ['Type','Timestamp','Date','Owner Name','House Number / GPS','Ghana Card','Contact','Suburb','Building Type','No. of Rooms','No. of Floors','Current Use','Latitude','Longitude','Address','Plus Code','Google Maps Link'];
+  const sheets = {};
+  const biz  = records.filter(r => r.type === 'business');
+  const prop = records.filter(r => r.type === 'property');
+  if (biz.length)  sheets['Business Records']  = [bH,  ...biz.map(r  => ['Business',  r.timestamp||'', r.date||'', r.businessName||'', r.ownerName||'', r.contact||'', r.businessType||'', r.businessSize||'', r.item||'', r.latitude||'', r.longitude||'', r.address||'', r.plusCode||'', r.mapsLink||''])];
+  if (prop.length) sheets['Property Records'] = [pH, ...prop.map(r => ['Property', r.timestamp||'', r.date||'', r.ownerName||'', r.houseNumber||'', r.ghanaCard||'', r.contact||'', r.suburb||'', r.buildingType||'', r.numberOfRooms||'', r.numberOfFloors||'', r.currentUse||'', r.latitude||'', r.longitude||'', r.address||'', r.plusCode||'', r.mapsLink||''])];
+  return sheets;
+}
+function exportXLSX() {
+  const r = getExportRecs(); if (!r.length) { alert('No records to export.'); return; }
+  const sheets = buildSheets(r); const wb = XLSX.utils.book_new();
+  Object.entries(sheets).forEach(([name, rows]) => {
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = rows[0].map(h => ({ wch: Math.max(String(h).length + 4, 14) }));
+    XLSX.utils.book_append_sheet(wb, ws, name);
+  });
+  XLSX.writeFile(wb, `RTF2026_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+function exportCSV() {
+  const r = getExportRecs(); if (!r.length) { alert('No records to export.'); return; }
+  const sheets = buildSheets(r); let csv = '';
+  Object.entries(sheets).forEach(([name, rows]) => {
+    csv += `=== ${name} ===\n`;
+    rows.forEach(row => { csv += row.map(c => { const v = String(c||''); return v.includes(',') || v.includes('"') ? `"${v.replace(/"/g,'""')}"` : v; }).join(',') + '\n'; });
+    csv += '\n';
+  });
+  const blob = new Blob(['\uFEFF'+csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `RTF2026_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+// ---- PAGE NAV ----
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(`pg-${name}`).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  if (name === 'map' && mapsAPILoaded) renderMapMarkers();
+  if (name === 'records') renderRecords();
+}
+</script>
+</body>
+</html>
