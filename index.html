@@ -401,7 +401,7 @@ function updateSyncStatus() {
 }
 
 async function tryFlushQueue() {
-  if (!navigator.onLine || offlineQueue.length === 0 || APPS_SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbwxFxfJloKO-sjeokue_rE2uNWLzuAL3j_kH4s_szMv5U-IrQhxvUeFmiCeLnC2Q61R3Q/exec') return;
+  if (!navigator.onLine || offlineQueue.length === 0 || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL') return;
   const toSend = [...offlineQueue];
   for (const record of toSend) {
     try {
@@ -574,7 +574,7 @@ async function submitForm(type) {
 
   showStatus(p, 'info', '⏳ Saving...');
 
-  if (!navigator.onLine || APPS_SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbwxFxfJloKO-sjeokue_rE2uNWLzuAL3j_kH4s_szMv5U-IrQhxvUeFmiCeLnC2Q61R3Q/exec') {
+  if (!navigator.onLine || APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL') {
     offlineQueue.push(record);
     try { localStorage.setItem('rtf2026_queue', JSON.stringify(offlineQueue)); } catch(e) {}
     updateSyncStatus();

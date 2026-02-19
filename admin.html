@@ -272,7 +272,7 @@ function logout() {
 // ---- DATA ----
 async function loadData() {
   document.getElementById('lastUpdated').textContent = 'Refreshing...';
-  if (APPS_SCRIPT_URL !== 'https://script.google.com/macros/s/AKfycbwxFxfJloKO-sjeokue_rE2uNWLzuAL3j_kH4s_szMv5U-IrQhxvUeFmiCeLnC2Q61R3Q/exec') {
+  if (APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_WEB_APP_URL') {
     try {
       const res = await fetch(`${APPS_SCRIPT_URL}?action=getAll`);
       const data = await res.json();
@@ -287,7 +287,7 @@ async function loadData() {
   // Fallback to localStorage (offline queue)
   try { allRecords = JSON.parse(localStorage.getItem('rtf2026_queue') || '[]'); } catch(e) { allRecords = []; }
   document.getElementById('lastUpdated').textContent =
-    APPS_SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbwxFxfJloKO-sjeokue_rE2uNWLzuAL3j_kH4s_szMv5U-IrQhxvUeFmiCeLnC2Q61R3Q/exec'
+    APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_WEB_APP_URL'
       ? `Demo mode — set APPS_SCRIPT_URL to see live data · ${allRecords.length} local records`
       : `Using local data (${allRecords.length} records) — Sheets unavailable`;
   renderAll();
